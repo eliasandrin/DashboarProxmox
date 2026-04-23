@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
 
+const REFRESH_INTERVAL_MS = 5000
+
 const STATUS_COLORS = {
   running: { bg: '#14532d', text: '#86efac' },
   stopped: { bg: '#1e293b', text: '#94a3b8' },
@@ -38,7 +40,11 @@ export default function Inventory() {
     }
   }
 
-  useEffect(() => { fetchVms() }, [])
+  useEffect(() => {
+    fetchVms()
+    const interval = setInterval(fetchVms, REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [])
 
   const doAction = async (vm, action) => {
     const key = `${vm.node}-${vm.vmid}-${action}`
@@ -79,6 +85,10 @@ export default function Inventory() {
             padding: '8px 12px', color: '#f1f5f9', fontSize: 13, width: 260
           }}
         />
+      </div>
+
+      <div style={{ color: '#64748b', fontSize: 12, marginTop: -10, marginBottom: 14 }}>
+        Aggiornamento automatico ogni 5 secondi
       </div>
 
       {message && (

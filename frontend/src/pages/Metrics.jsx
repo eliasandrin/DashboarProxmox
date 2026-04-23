@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import api from '../api/client'
 
+const REFRESH_INTERVAL_MS = 5000
+
 function MetricChart({ title, data, lines }) {
   return (
     <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155' }}>
@@ -30,6 +32,8 @@ export default function Metrics() {
   const [vms, setVms] = useState([])
   const [selected, setSelected] = useState(null)
   const [metrics, setMetrics] = useState([])
+  const [live, setLive] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,47 +44,92 @@ export default function Metrics() {
     })
   }, [])
 
+  const loadMetrics = async (isSilent = false) => {
+    if (!selected) return
+    if (!isSilent) setLoading(true)
+    setError('')
+
+    try {
+      const [metricsRes, liveRes] = await Promise.all([
+        api.get(`/metrics/${selected.node}/${selected.type}/${selected.vmid}`),
+        api.get(`/vms/${selected.node}/${selected.type}/${selected.vmid}`),
+      ])
+
+      const points = metricsRes.data.datapoints.map((p, i) => ({
+        ...p,
+        label: i % 5 === 0 ? `${Math.round((30 - metricsRes.data.datapoints.length + i + 1))}m` : '',
+      }))
+
+      const vm = liveRes.data
+      const memPercent = vm.mem_total_mb > 0
+        ? Math.round((vm.mem_used_mb / vm.mem_total_mb) * 1000) / 10
+        : 0
+
+      setMetrics(points)
+      setLive({ cpu: vm.cpu ?? 0, mem_percent: memPercent })
+      setLastUpdated(new Date())
+    } catch (e) {
+      const detail = e.response?.data?.detail
+      setError(typeof detail === 'object' ? detail.detail : detail || 'Errore metriche')
+    } finally {
+      if (!isSilent) setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!selected) return
-    setLoading(true)
-    setError('')
-    api.get(`/metrics/${selected.node}/${selected.type}/${selected.vmid}`)
-      .then(r => {
-        const points = r.data.datapoints.map((p, i) => ({
-          ...p,
-          label: i % 5 === 0 ? `${Math.round((30 - r.data.datapoints.length + i + 1))}m` : '',
-        }))
-        setMetrics(points)
-      })
-      .catch(e => {
-        const detail = e.response?.data?.detail
-        setError(typeof detail === 'object' ? detail.detail : detail || 'Errore metriche')
-      })
-      .finally(() => setLoading(false))
+    loadMetrics(false)
+    const interval = setInterval(() => loadMetrics(true), REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [selected])
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 600, margin: 0 }}>Metriche real-time</h2>
-        <select
-          value={selected ? `${selected.node}-${selected.vmid}` : ''}
-          onChange={e => {
-            const [node, vmid] = e.target.value.split('-')
-            setSelected(vms.find(v => v.node === node && String(v.vmid) === vmid))
-          }}
-          style={{
-            background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
-            padding: '8px 12px', color: '#f1f5f9', fontSize: 13
-          }}
-        >
-          {vms.map(v => (
-            <option key={`${v.node}-${v.vmid}`} value={`${v.node}-${v.vmid}`}>
-              [{v.node}] {v.name} ({v.vmid})
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <select
+            value={selected ? `${selected.node}-${selected.vmid}` : ''}
+            onChange={e => {
+              const [node, vmid] = e.target.value.split('-')
+              setSelected(vms.find(v => v.node === node && String(v.vmid) === vmid))
+            }}
+            style={{
+              background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
+              padding: '8px 12px', color: '#f1f5f9', fontSize: 13
+            }}
+          >
+            {vms.map(v => (
+              <option key={`${v.node}-${v.vmid}`} value={`${v.node}-${v.vmid}`}>
+                [{v.node}] {v.name} ({v.vmid})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      <div style={{ color: '#64748b', fontSize: 12, marginTop: -10, marginBottom: 14 }}>
+        Aggiornamento automatico ogni 5 secondi (i grafici RRD di Proxmox possono avere ritardo di circa 1 minuto)
+      </div>
+
+      {live && (
+        <div style={{
+          display: 'flex', gap: 16, marginBottom: 16, padding: '10px 14px',
+          background: '#0f172a', border: '1px solid #334155', borderRadius: 8
+        }}>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>
+            CPU live: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{live.cpu}%</span>
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>
+            RAM live: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{live.mem_percent}%</span>
+          </div>
+          {lastUpdated && (
+            <div style={{ color: '#64748b', fontSize: 12 }}>
+              Ultimo update: {lastUpdated.toLocaleTimeString('it-IT')}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div style={{

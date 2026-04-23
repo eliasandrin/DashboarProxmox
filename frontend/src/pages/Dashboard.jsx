@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
 
+const REFRESH_INTERVAL_MS = 5000
+
 function StatBar({ value, max = 100, color = '#3b82f6' }) {
   const pct = Math.min((value / max) * 100, 100)
   const bg = pct > 85 ? '#ef4444' : pct > 60 ? '#f59e0b' : color
@@ -74,7 +76,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchNodes()
-    const interval = setInterval(fetchNodes, 30000)
+    const interval = setInterval(fetchNodes, REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [])
 
@@ -83,6 +85,9 @@ export default function Dashboard() {
   return (
     <div>
       <h2 style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 600, marginBottom: 20 }}>Dashboard cluster</h2>
+      <div style={{ color: '#64748b', fontSize: 12, marginTop: -12, marginBottom: 16 }}>
+        Aggiornamento automatico ogni 5 secondi
+      </div>
 
       {error && (
         <div style={{
