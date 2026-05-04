@@ -1,0 +1,17 @@
+services:
+  dns:
+    image: coredns/coredns:1.11.1
+    container_name: informix-dns
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    volumes:
+      - ./dns/Corefile:/etc/coredns/Corefile:ro
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      - informix-net
+
+networks:
+  informix-net:
+    external: false

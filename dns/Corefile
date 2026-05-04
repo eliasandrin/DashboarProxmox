@@ -1,0 +1,10 @@
+.:53 {
+  errors
+  log
+  hosts {
+    10.1.11.57 informixspa.it www.informixspa.it
+    fallthrough
+  }
+  forward . 1.1.1.1 8.8.8.8
+  cache 60
+}

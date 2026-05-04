@@ -1,0 +1,39 @@
+# ╔══════════════════════════════════════════════════════╗
+# ║  INFORMIX Spa — Production Override                 ║
+# ║  Usage:                                             ║
+# ║  docker compose -f docker-compose.yml               ║
+# ║    -f docker-compose.prod.yml up -d                 ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# In produzione:
+# - Il database locale NON viene avviato (si usa AWS RDS)
+# - I secrets vengono letti da AWS Secrets Manager
+# - Le immagini Docker provengono da AWS ECR
+
+services:
+  # Disabilita il database locale (si usa AWS RDS)
+  db:
+    profiles:
+      - disabled
+
+  backend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/informix-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: production
+      DEMO_MODE: "false"
+      USE_AWS_SECRETS: "true"
+      AWS_REGION: ${AWS_REGION:-eu-south-1}
+      AWS_SECRET_NAME: ${AWS_SECRET_NAME:-informix/portal/config}
+      # In produzione le credenziali DB vengono da Secrets Manager
+      DB_HOST: ""
+      DB_PASSWORD: ""
+    depends_on: []
+
+  frontend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/informix-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile

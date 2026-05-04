@@ -1,0 +1,93 @@
+services:
+  # ─── PostgreSQL Database (Development) ─────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: informix-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: informix_portal
+      POSTGRES_USER: informix_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-InformixDev2024!}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U informix_admin -d informix_portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - informix-net
+
+  # ─── FastAPI Backend ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: informix-backend
+    restart: unless-stopped
+    environment:
+      # Application
+      APP_ENV: development
+      DEMO_MODE: ${DEMO_MODE:-false}
+      # Database (local dev)
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: informix_portal
+      DB_USER: informix_admin
+      DB_PASSWORD: ${DB_PASSWORD:-InformixDev2024!}
+      # JWT
+      JWT_SECRET_KEY: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: "60"
+      # Proxmox (overridden by Secrets Manager in prod)
+      PROXMOX_HOST: ${PROXMOX_HOST:-192.168.1.100}
+      PROXMOX_PORT: "8006"
+      PROXMOX_USER: ${PROXMOX_USER:-apiuser@pve!portal-token}
+      PROXMOX_TOKEN_VALUE: ${PROXMOX_TOKEN_VALUE:-}
+      PROXMOX_VERIFY_SSL: "false"
+      # AWS (optional in dev)
+      AWS_REGION: ${AWS_REGION:-eu-south-1}
+      AWS_SECRET_NAME: ${AWS_SECRET_NAME:-informix/portal/config}
+      USE_AWS_SECRETS: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - informix-net
+
+  # ─── Nginx Frontend ───────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: informix-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - informix-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+    name: informix-postgres-data
+
+networks:
+  informix-net:
+    driver: bridge

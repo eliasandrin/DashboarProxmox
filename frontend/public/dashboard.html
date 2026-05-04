@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="INFORMIX Spa Dashboard - Monitor and manage Proxmox VE virtual machines and containers.">
+  <title>INFORMIX Portal - Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=4.0">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <img src="assets/logo.png" alt="INFORMIX">
+        <h2>INFORMIX</h2>
+      </div>
+      <button class="btn btn-icon btn-outline sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu" title="Close">&times;</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title" data-i18n="nav_overview">Overview</div>
+        <div class="nav-item active" data-section="dashboard"><span class="icon">DB</span><span data-i18n="nav_dashboard">Dashboard</span></div>
+        <div class="nav-item" data-section="vms"><span class="icon">VM</span><span data-i18n="nav_inventory">VM/CT Inventory</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title" data-i18n="nav_operations">Operations</div>
+        <div class="nav-item" data-section="monitoring"><span class="icon">MN</span><span data-i18n="nav_monitoring">Monitoring</span></div>
+        <div class="nav-item" data-section="backup"><span class="icon">BK</span><span data-i18n="nav_backup">Snapshot & Backup</span></div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title" data-i18n="nav_advanced">Advanced</div>
+        <div class="nav-item" data-section="cluster"><span class="icon">CL</span><span data-i18n="nav_cluster">Cluster & Migration</span></div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info" style="margin-bottom: 12px;">
+        <div class="user-avatar" id="userAvatar">A</div>
+        <div class="user-details" style="white-space: normal;">
+          <div class="name" id="userName" style="white-space: normal; word-break: break-word;">Admin</div>
+          <div class="role" id="userRole" style="white-space: normal; word-break: break-word;">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-outline logout-btn" id="logoutBtn" title="Logout" style="width: 100%; justify-content: center;">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span data-i18n="logout">Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn btn-icon btn-outline mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu" title="Menu">M</button>
+        <h1 id="pageTitle" data-i18n="nav_dashboard">Dashboard</h1>
+      </div>
+      <div class="topbar-actions">
+
+        <span class="badge-demo" id="demoBadge" style="display:none;">DEMO MODE</span>
+        <button class="btn btn-sm btn-outline" id="refreshBtn"><span data-i18n="refresh">Refresh</span></button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <!-- DASHBOARD SECTION -->
+      <div id="section-dashboard" class="section active">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+          <button class="btn btn-sm btn-primary" id="createVmBtn">+ <span data-i18n="create_vm_ct">Crea VM/CT</span></button>
+        </div>
+        <div class="grid grid-3" id="nodesGrid"></div>
+        <div style="margin-top:24px;">
+          <div class="card">
+            <div class="card-header">
+              <h3 data-i18n="quick_overview">Quick VM Overview</h3>
+              <span class="card-icon">VM</span>
+            </div>
+            <div id="quickVmList" class="loading-overlay"><div class="spinner"></div><span data-i18n="loading">Loading...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VM/CT INVENTORY -->
+      <div id="section-vms" class="section">
+        <div class="table-container">
+          <div class="table-toolbar">
+            <h3><span data-i18n="vm_inventory">VM / CT Inventory</span></h3>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <div class="search-box">
+                <span>S</span>
+                <input type="text" id="vmSearch" data-i18n-placeholder="search_vms" placeholder="Search VMs...">
+              </div>
+              <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="running">Running</button>
+                <button class="filter-btn" data-filter="stopped">Stopped</button>
+                <button class="filter-btn" data-filter="qemu">QEMU</button>
+                <button class="filter-btn" data-filter="lxc">LXC</button>
+              </div>
+            </div>
+          </div>
+          <div class="vm-cards" id="vmCards"></div>
+          <div style="overflow-x:auto;" class="vm-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th data-i18n="th_name">Name</th>
+                  <th data-i18n="th_status">Status</th>
+                  <th data-i18n="th_type">Type</th>
+                  <th data-i18n="th_node">Node</th>
+                  <th>CPU</th>
+                  <th>RAM</th>
+                  <th data-i18n="th_actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vmTableBody">
+                <tr><td colspan="8" class="loading-overlay"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MONITORING -->
+      <div id="section-monitoring" class="section">
+        <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.85rem; color:var(--text-secondary);" data-i18n="select_target">Select target:</label>
+          <select id="monitorTarget" style="padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit; font-size:.85rem;">
+            <option value="" data-i18n="select_node_vm">-- Select Node or VM --</option>
+          </select>
+        </div>
+        <div class="grid grid-2">
+          <div class="card"><div class="card-header"><h3 data-i18n="cpu_usage">CPU Usage (%)</h3></div><div class="chart-container"><canvas id="chartCpu"></canvas></div></div>
+          <div class="card"><div class="card-header"><h3 data-i18n="mem_usage">Memory Usage</h3></div><div class="chart-container"><canvas id="chartMem"></canvas></div></div>
+          <div class="card"><div class="card-header"><h3 data-i18n="net_io">Network I/O</h3></div><div class="chart-container"><canvas id="chartNet"></canvas></div></div>
+          <div class="card"><div class="card-header"><h3 data-i18n="disk_io">Disk I/O</h3></div><div class="chart-container"><canvas id="chartDisk"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- BACKUP & SNAPSHOT -->
+      <div id="section-backup" class="section">
+        <div id="pbsWarning" class="alert alert-warning" style="display:none;"><span data-i18n="pbs_warning">Proxmox Backup Server is temporarily unreachable. Some features may be limited.</span></div>
+        <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:.85rem; color:var(--text-secondary);" data-i18n="select_vm_backup">Select VM:</label>
+          <select id="backupVmSelect" style="padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
+          </select>
+          <button class="btn btn-sm btn-success" id="createSnapshotBtn"><span data-i18n="create_snapshot">Create Snapshot</span></button>
+          <button class="btn btn-sm btn-primary" id="createBackupBtn"><span data-i18n="start_backup">Start Backup (PBS)</span></button>
+        </div>
+        <div class="grid grid-2">
+          <div class="card"><div class="card-header"><h3 data-i18n="snapshots">Snapshots</h3></div><div id="snapshotList" class="snapshot-list"></div></div>
+          <div class="card"><div class="card-header"><h3 data-i18n="backup_history">Backup History (PBS)</h3></div><div id="backupList"></div></div>
+        </div>
+      </div>
+
+      <!-- CLUSTER & MIGRATION -->
+      <div id="section-cluster" class="section">
+        <div class="alert alert-info"><span data-i18n="cluster_info">Cluster Awareness - Map VMs across physical nodes and perform live migrations.</span></div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header"><h3 data-i18n="cluster_map">Cluster Map</h3></div>
+            <div id="clusterTree" class="cluster-tree"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 data-i18n="live_migration">Live Migration</h3></div>
+            <div id="migrationPanel">
+              <div class="form-group">
+                <label data-i18n="select_vm_migrate">VM to Migrate</label>
+                <select id="migrateVmSelect" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;"></select>
+              </div>
+              <div class="form-group">
+                <label data-i18n="target_node">Target Node</label>
+                <select id="migrateTargetSelect" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;"></select>
+              </div>
+              <button class="btn btn-primary" id="migrateBtn"><span data-i18n="start_migration">Start Migration</span></button>
+              <div id="migrationStatus" style="margin-top:12px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalBody" style="color:var(--text-secondary); font-size:.9rem;"></p>
+    <div id="modalForm"></div>
+    <div class="modal-actions">
+      <button class="btn btn-sm btn-outline" id="modalCancel" data-i18n="cancel">Cancel</button>
+      <button class="btn btn-sm btn-primary" id="modalConfirm" data-i18n="confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/i18n.js?v=4.0"></script>
+<script src="js/api.js?v=4.0"></script>
+<script src="js/dashboard.js?v=4.0"></script>
+<script src="js/vms.js?v=4.0"></script>
+<script src="js/monitoring.js?v=4.0"></script>
+<script src="js/backup.js?v=4.0"></script>
+<script src="js/cluster.js?v=4.0"></script>
+<script src="js/app.js?v=4.0"></script>
+</body>
+</html>
+
+
+
+
+

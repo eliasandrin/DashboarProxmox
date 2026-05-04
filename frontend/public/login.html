@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="INFORMIX Spa - Proxmox VE Management Portal. Login to access the management dashboard.">
+  <title>INFORMIX Portal - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=3.0">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="logo">
+        <img src="assets/logo.png" alt="INFORMIX Spa">
+        <h1>INFORMIX Portal</h1>
+        <p id="authSubtitle" data-i18n="login_subtitle">Sign in to access the management system</p>
+      </div>
+
+      <form id="loginForm" autocomplete="on">
+        <div class="form-group">
+          <label for="loginUsernameLocal" data-i18n="username">Nome utente</label>
+          <div class="email-domain-group">
+            <input type="text" id="loginUsernameLocal" name="loginUsernameLocal" placeholder="admin" required autofocus>
+            <span class="email-domain-fixed">@informix.it</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password" data-i18n="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="********" required>
+        </div>
+        <button type="submit" class="btn btn-login" id="loginBtn">
+          <span data-i18n="sign_in">Sign In</span>
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        <span data-i18n="need_account">Need an account?</span>
+        <a href="/index.html" id="goToRegisterLink" data-i18n="go_to_register">Create one</a>
+      </p>
+
+
+
+      <p id="authHint" style="text-align:center; margin-top:20px; font-size:.72rem; color:var(--text-muted);" data-i18n="login_hint">Use your account credentials to sign in.</p>
+    </div>
+  </div>
+
+  <script src="js/i18n.js?v=3.0"></script>
+  <script src="js/api.js?v=3.0"></script>
+  <script src="js/auth.js?v=3.0"></script>
+</body>
+</html>
+
+
+
+
