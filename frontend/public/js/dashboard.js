@@ -38,13 +38,6 @@ async function openCreateVmModal() {
 
     const formHtml = `
       <div class="form-group">
-        <label>${t('vm_type')}</label>
-        <select id="createVmType" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
-          <option value="qemu">QEMU (VM)</option>
-          <option value="lxc">LXC (CT)</option>
-        </select>
-      </div>
-      <div class="form-group">
         <label>${t('th_node')}</label>
         <select id="createVmNode" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
           ${nodeOptions}
@@ -60,7 +53,7 @@ async function openCreateVmModal() {
       </div>
       <div class="form-group">
         <label>${t('vm_description')}</label>
-        <textarea id="createVmDesc" rows="2" placeholder="Descrizione VM/CT" style="width:100%;"></textarea>
+        <textarea id="createVmDesc" rows="2" placeholder="Descrizione VM" style="width:100%;"></textarea>
       </div>
       <div class="grid grid-2">
         <div class="form-group">
@@ -86,29 +79,19 @@ async function openCreateVmModal() {
         <label>${t('disk_storage')}</label>
         <input id="createVmDiskStorage" type="text" value="local-lvm" style="width:100%;">
       </div>
-      <div id="isoFields">
-        <div class="grid grid-2">
-          <div class="form-group">
-            <label>${t('iso_storage')}</label>
-            <input id="createVmIsoStorage" type="text" value="local" style="width:100%;">
-          </div>
-          <div class="form-group">
-            <label>${t('iso_file')}</label>
-            <input id="createVmIsoFile" type="file" accept=".iso" style="width:100%;">
-          </div>
-        </div>
-        <div id="isoUploadStatus" style="font-size:.8rem; color:var(--text-muted);"></div>
+      <div class="form-group">
+        <label>${t('iso_storage')}</label>
+        <input id="createVmIsoStorage" type="text" value="local" style="width:100%;">
       </div>
-      <div id="ctTemplateFields" style="display:none;">
-        <div class="form-group">
-          <label>${t('ct_template')}</label>
-          <input id="createCtTemplate" type="text" placeholder="local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst" style="width:100%;">
-        </div>
+      <div class="form-group">
+        <label>${t('iso_file')}</label>
+        <input id="createVmIsoFile" type="file" accept=".iso" style="width:100%;">
       </div>
+      <div id="isoUploadStatus" style="font-size:.8rem; color:var(--text-muted);"></div>
     `;
 
-    showModal(t('create_vm_ct'), '', async () => {
-      const vmType = document.getElementById('createVmType')?.value || 'qemu';
+    showModal(t('create_vm'), '', async () => {
+      const vmType = 'qemu';
       const node = document.getElementById('createVmNode')?.value;
       const vmid = parseInt(document.getElementById('createVmId')?.value || '0', 10);
       const name = document.getElementById('createVmName')?.value?.trim();
@@ -125,21 +108,19 @@ async function openCreateVmModal() {
       }
 
       let isoFileName = null;
-      if (vmType === 'qemu') {
-        const isoStorage = document.getElementById('createVmIsoStorage')?.value?.trim() || 'local';
-        const isoInput = document.getElementById('createVmIsoFile');
-        if (isoInput && isoInput.files && isoInput.files.length > 0) {
-          const file = isoInput.files[0];
-          const formData = new FormData();
-          formData.append('file', file);
-          try {
-            const upload = await ApiClient.postForm(`/nodes/${node}/iso/upload?storage=${encodeURIComponent(isoStorage)}`, formData);
-            isoFileName = upload.iso_file;
-            showToast('ISO caricato con successo', 'success');
-          } catch (e) {
-            showToast(e.message, 'error');
-            return;
-          }
+      const isoStorage = document.getElementById('createVmIsoStorage')?.value?.trim() || 'local';
+      const isoInput = document.getElementById('createVmIsoFile');
+      if (isoInput && isoInput.files && isoInput.files.length > 0) {
+        const file = isoInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const upload = await ApiClient.postForm(`/nodes/${node}/iso/upload?storage=${encodeURIComponent(isoStorage)}`, formData);
+          isoFileName = upload.iso_file;
+          showToast('ISO caricato con successo', 'success');
+        } catch (e) {
+          showToast(e.message, 'error');
+          return;
         }
       }
 
@@ -155,24 +136,14 @@ async function openCreateVmModal() {
         disk_storage: diskStorage,
       };
 
-      if (vmType === 'qemu') {
-        const isoStorage = document.getElementById('createVmIsoStorage')?.value?.trim() || 'local';
-        if (isoFileName) {
-          payload.iso_storage = isoStorage;
-          payload.iso_file = isoFileName;
-        }
-      } else {
-        const template = document.getElementById('createCtTemplate')?.value?.trim();
-        if (!template) {
-          showToast('Template CT obbligatorio', 'error');
-          return;
-        }
-        payload.ct_template = template;
+      if (isoFileName) {
+        payload.iso_storage = isoStorage;
+        payload.iso_file = isoFileName;
       }
 
       try {
         const res = await ApiClient.post(`/nodes/${node}/provision`, payload);
-        showToast(res.message || 'Creazione avviata', 'success');
+        showToast(res.message || 'Creazione VM avviata', 'success');
         setTimeout(async () => {
           const data = await ApiClient.get('/vms/all');
           allVms = data.vms || [];
@@ -182,29 +153,138 @@ async function openCreateVmModal() {
         showToast(e.message, 'error');
       }
     }, formHtml);
-
-    const typeSelect = document.getElementById('createVmType');
-    const isoFields = document.getElementById('isoFields');
-    const ctFields = document.getElementById('ctTemplateFields');
-    if (typeSelect) {
-      typeSelect.addEventListener('change', () => {
-        const isQemu = typeSelect.value === 'qemu';
-        if (isoFields) isoFields.style.display = isQemu ? '' : 'none';
-        if (ctFields) ctFields.style.display = isQemu ? 'none' : '';
-      });
-    }
   } catch (e) {
     showToast(e.message, 'error');
   }
 }
 
-async function initCreateVmButton() {
-  const btn = document.getElementById('createVmBtn');
-  if (!btn) return;
+async function openCreateCtModal() {
+  const showModal = ensureShowModal();
+  try {
+    if (allNodes.length === 0) {
+      const data = await ApiClient.get('/nodes');
+      allNodes = data.nodes || [];
+    }
 
-  btn.addEventListener('click', async () => {
-    await openCreateVmModal();
-  });
+    const nodeOptions = allNodes.map(n => `<option value="${n.node}">${n.node}</option>`).join('');
+
+    const formHtml = `
+      <div class="form-group">
+        <label>${t('th_node')}</label>
+        <select id="createCtNode" style="width:100%; padding:10px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
+          ${nodeOptions}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${t('vm_id')}</label>
+        <input id="createCtId" type="number" min="100" placeholder="100" style="width:100%;">
+      </div>
+      <div class="form-group">
+        <label>${t('vm_name')}</label>
+        <input id="createCtName" type="text" placeholder="ct-prod-01" style="width:100%;">
+      </div>
+      <div class="form-group">
+        <label>${t('vm_description')}</label>
+        <textarea id="createCtDesc" rows="2" placeholder="Descrizione Container" style="width:100%;"></textarea>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label>${t('cores')}</label>
+          <input id="createCtCores" type="number" min="1" value="2" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label>${t('ram_mb')}</label>
+          <input id="createCtRam" type="number" min="256" value="2048" style="width:100%;">
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label>${t('disk_gb')}</label>
+          <input id="createCtDisk" type="number" min="1" value="20" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label>${t('network_bridge')}</label>
+          <input id="createCtBridge" type="text" value="vmbr0" style="width:100%;">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>${t('disk_storage')}</label>
+        <input id="createCtDiskStorage" type="text" value="local-lvm" style="width:100%;">
+      </div>
+      <div class="form-group">
+        <label>${t('ct_template')}</label>
+        <input id="createCtTemplate" type="text" placeholder="local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst" style="width:100%;">
+      </div>
+    `;
+
+    showModal(t('create_ct'), '', async () => {
+      const vmType = 'lxc';
+      const node = document.getElementById('createCtNode')?.value;
+      const vmid = parseInt(document.getElementById('createCtId')?.value || '0', 10);
+      const name = document.getElementById('createCtName')?.value?.trim();
+      const description = document.getElementById('createCtDesc')?.value?.trim();
+      const cores = parseInt(document.getElementById('createCtCores')?.value || '1', 10);
+      const memoryMb = parseInt(document.getElementById('createCtRam')?.value || '1024', 10);
+      const diskGb = parseInt(document.getElementById('createCtDisk')?.value || '8', 10);
+      const bridge = document.getElementById('createCtBridge')?.value?.trim() || 'vmbr0';
+      const diskStorage = document.getElementById('createCtDiskStorage')?.value?.trim() || 'local-lvm';
+      const template = document.getElementById('createCtTemplate')?.value?.trim();
+
+      if (!node || !vmid || !name) {
+        showToast('Compila node, CTID e nome', 'error');
+        return;
+      }
+
+      if (!template) {
+        showToast('Template CT obbligatorio', 'error');
+        return;
+      }
+
+      const payload = {
+        vm_type: vmType,
+        vmid: vmid,
+        name: name,
+        description: description || '',
+        cores: cores,
+        memory_mb: memoryMb,
+        disk_gb: diskGb,
+        network_bridge: bridge,
+        disk_storage: diskStorage,
+        ct_template: template,
+      };
+
+      try {
+        const res = await ApiClient.post(`/nodes/${node}/provision`, payload);
+        showToast(res.message || 'Creazione CT avviata', 'success');
+        setTimeout(async () => {
+          const data = await ApiClient.get('/vms/all');
+          allVms = data.vms || [];
+          renderVmTable(allVms);
+        }, 1500);
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }, formHtml);
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function initCreateButtons() {
+  const vmBtn = document.getElementById('createVmBtn');
+  const ctBtn = document.getElementById('createCtBtn');
+  
+  if (vmBtn) {
+    vmBtn.addEventListener('click', async () => {
+      await openCreateVmModal();
+    });
+  }
+  
+  if (ctBtn) {
+    ctBtn.addEventListener('click', async () => {
+      await openCreateCtModal();
+    });
+  }
 }
 
 async function loadNodes() {
@@ -266,34 +346,34 @@ async function loadQuickVmList() {
     const qemu = allVms.filter(v => v.type === 'qemu').length;
     const lxc = allVms.filter(v => v.type === 'lxc').length;
     container.innerHTML = `
-      <div class="grid grid-4">
-        <div style="text-align:center; padding:16px;">
-          <div style="font-size:2rem; font-weight:800; color:var(--accent); font-family:var(--font-mono);">${allVms.length}</div>
-          <div style="font-size:.8rem; color:var(--text-muted);">Total</div>
-        </div>
-        <div style="text-align:center; padding:16px;">
-          <div style="font-size:2rem; font-weight:800; color:var(--green); font-family:var(--font-mono);">${running}</div>
-          <div style="font-size:.8rem; color:var(--text-muted);">Running</div>
-        </div>
-        <div style="text-align:center; padding:16px;">
-          <div style="font-size:2rem; font-weight:800; color:var(--red); font-family:var(--font-mono);">${stopped}</div>
-          <div style="font-size:.8rem; color:var(--text-muted);">Stopped</div>
-        </div>
-        <div style="text-align:center; padding:16px;">
-          <div style="font-size:2rem; font-weight:800; color:var(--cyan); font-family:var(--font-mono);">${qemu} VM / ${lxc} CT</div>
-          <div style="font-size:.8rem; color:var(--text-muted);">By Type</div>
-        </div>
+      <div class="stats-item">
+        <span class="stats-label">Total:</span>
+        <span class="stats-value" style="color:var(--accent);">${allVms.length}</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Running:</span>
+        <span class="stats-value" style="color:var(--green);">${running}</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Stopped:</span>
+        <span class="stats-value" style="color:var(--red);">${stopped}</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-label">Type:</span>
+        <span class="stats-value" style="color:var(--cyan);">${qemu} VM / ${lxc} CT</span>
       </div>`;
   } catch (e) {
-    container.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    container.innerHTML = `<div style="color:var(--text-muted); font-size:.85rem;">Error loading stats</div>`;
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initCreateVmButton();
+  initCreateButtons();
   document.addEventListener('click', (event) => {
-    const target = event.target.closest('#createVmBtn');
-    if (target) openCreateVmModal();
+    const vmTarget = event.target.closest('#createVmBtn');
+    const ctTarget = event.target.closest('#createCtBtn');
+    if (vmTarget) openCreateVmModal();
+    if (ctTarget) openCreateCtModal();
   });
 });
 

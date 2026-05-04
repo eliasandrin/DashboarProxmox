@@ -52,6 +52,8 @@ const I18N = {
     login_failed: "Nome utente o password non validi",
     cores: "Core",
     create_vm_ct: "Crea VM/CT",
+    create_vm: "Crea Virtual Machine",
+    create_ct: "Crea Container",
     vm_type: "Tipo",
     vm_name: "Nome",
     vm_description: "Descrizione",
