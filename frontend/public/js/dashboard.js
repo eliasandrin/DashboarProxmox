@@ -346,24 +346,24 @@ async function loadQuickVmList() {
     const qemu = allVms.filter(v => v.type === 'qemu').length;
     const lxc = allVms.filter(v => v.type === 'lxc').length;
     container.innerHTML = `
-      <div class="stats-item">
-        <span class="stats-label">Total:</span>
-        <span class="stats-value" style="color:var(--accent);">${allVms.length}</span>
+      <div class="quick-stat-item">
+        <div class="quick-stat-number">${allVms.length}</div>
+        <div class="quick-stat-label">Total</div>
       </div>
-      <div class="stats-item">
-        <span class="stats-label">Running:</span>
-        <span class="stats-value" style="color:var(--green);">${running}</span>
+      <div class="quick-stat-item">
+        <div class="quick-stat-number" style="color:var(--green);">${running}</div>
+        <div class="quick-stat-label">Running</div>
       </div>
-      <div class="stats-item">
-        <span class="stats-label">Stopped:</span>
-        <span class="stats-value" style="color:var(--red);">${stopped}</span>
+      <div class="quick-stat-item">
+        <div class="quick-stat-number" style="color:var(--red);">${stopped}</div>
+        <div class="quick-stat-label">Stopped</div>
       </div>
-      <div class="stats-item">
-        <span class="stats-label">Type:</span>
-        <span class="stats-value" style="color:var(--cyan);">${qemu} VM / ${lxc} CT</span>
+      <div class="quick-stat-item">
+        <div class="quick-stat-number" style="color:var(--cyan);">${qemu} VM</div>
+        <div class="quick-stat-label">${lxc} CT</div>
       </div>`;
   } catch (e) {
-    container.innerHTML = `<div style="color:var(--text-muted); font-size:.85rem;">Error loading stats</div>`;
+    container.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
   }
 }
 
