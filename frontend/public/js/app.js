@@ -62,7 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sectionTitles = {
     dashboard: 'nav_dashboard', vms: 'nav_inventory',
-    monitoring: 'nav_monitoring', backup: 'nav_backup', cluster: 'nav_cluster'
+    monitoring: 'nav_monitoring', backup: 'nav_backup', cluster: 'nav_cluster',
+    users: 'nav_users'
   };
 
   navItems.forEach(item => {
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (section === 'monitoring') { initCharts(); populateMonitorTargets(); }
       if (section === 'backup') { populateBackupVmSelect(); loadBackupHistory(); }
       if (section === 'cluster') loadCluster();
+      if (section === 'users') loadUsers();
     });
   });
 
@@ -91,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (active === 'monitoring') loadMonitoringData();
     else if (active === 'backup') { const val = document.getElementById('backupVmSelect')?.value; if (val) { const [n, v, tp] = val.split('/'); loadSnapshots(n, v, tp); loadBackupHistory(parseInt(v)); } }
     else if (active === 'cluster') loadCluster();
+    else if (active === 'users') loadUsers();
     showToast('Data refreshed', 'success');
   });
 
@@ -105,4 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (badge) badge.style.display = '';
     }
   }).catch(() => {});
+
+  // Hide admin-only navigation if not admin
+  if (user && user.role !== 'admin') {
+    const navUsers = document.getElementById('navUsers');
+    if (navUsers) navUsers.style.display = 'none';
+  }
 });

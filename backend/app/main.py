@@ -119,6 +119,7 @@ from app.routers.vms_router import router as vms_router
 from app.routers.monitoring_router import router as monitoring_router
 from app.routers.backup_router import router as backup_router
 from app.routers.cluster_router import router as cluster_router
+from app.routers.users_router import router as users_router
 
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(nodes_router, prefix="/api/nodes", tags=["Nodes"])
@@ -126,6 +127,7 @@ app.include_router(vms_router, prefix="/api", tags=["Virtual Machines"])
 app.include_router(monitoring_router, prefix="/api", tags=["Monitoring"])
 app.include_router(backup_router, prefix="/api", tags=["Backup & Snapshots"])
 app.include_router(cluster_router, prefix="/api/cluster", tags=["Cluster"])
+app.include_router(users_router, prefix="/api", tags=["Users"])
 
 
 # ── Health Check ──────────────────────────────────────

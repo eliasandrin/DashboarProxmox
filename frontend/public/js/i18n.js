@@ -29,7 +29,7 @@ const I18N = {
     go_to_register: "Creane uno",
     nav_overview: "Panoramica", nav_dashboard: "Dashboard", nav_inventory: "Inventario VM/CT",
     nav_operations: "Operazioni", nav_monitoring: "Monitoraggio", nav_backup: "Snapshot e Backup",
-    nav_advanced: "Avanzate", nav_cluster: "Cluster e Migrazione",
+    nav_advanced: "Avanzate", nav_cluster: "Cluster e Migrazione", nav_users: "Utenti",
     refresh: "Aggiorna", loading: "Caricamento...",
     quick_overview: "Panoramica Rapida VM",
     vm_inventory: "Inventario VM / CT", search_vms: "Cerca VM...",
@@ -67,6 +67,12 @@ const I18N = {
     ct_template: "Template CT",
     create: "Crea",
     disk_storage: "Storage Disco",
+    users_title: "Gestione Utenti",
+    users_create: "Crea utente",
+    users_username: "Username",
+    users_email: "Email",
+    users_role: "Ruolo",
+    users_status: "Stato",
   }
 };
 

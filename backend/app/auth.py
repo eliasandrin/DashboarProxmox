@@ -98,6 +98,21 @@ async def get_current_user(
     return user
 
 
+def require_admin(user: User) -> None:
+    """Ensure the current user has admin role."""
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+
+
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    """FastAPI dependency: ensures the user is admin."""
+    require_admin(current_user)
+    return current_user
+
+
 async def authenticate_user(
     db: AsyncSession, username: str, password: str
 ) -> Optional[User]:

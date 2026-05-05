@@ -45,6 +45,23 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+class UserCreateRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: Optional[str] = Field(None, max_length=100)
+    role: str = Field("operator", pattern="^(admin|operator)$")
+    is_active: bool = True
+
+
+class UserStatusUpdateRequest(BaseModel):
+    is_active: bool
+
+
+class UserRoleUpdateRequest(BaseModel):
+    role: str = Field(..., pattern="^(admin|operator)$")
+
+
 # ── Nodes ─────────────────────────────────────────────
 
 class NodeStatus(BaseModel):

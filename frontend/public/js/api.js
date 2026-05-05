@@ -63,6 +63,8 @@ class ApiClient {
 
   static get(endpoint) { return this.request(endpoint); }
   static post(endpoint, body) { return this.request(endpoint, { method: 'POST', body: JSON.stringify(body) }); }
+  static patch(endpoint, body) { return this.request(endpoint, { method: 'PATCH', body: JSON.stringify(body) }); }
+  static delete(endpoint) { return this.request(endpoint, { method: 'DELETE' }); }
 
   static async postForm(endpoint, formData) {
     const token = this.getToken();

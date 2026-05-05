@@ -179,7 +179,19 @@ In demo mode, le operazioni sono simulate; in produzione richiedono un Proxmox r
 
 La sezione Metriche aggrega lo stato dei nodi e delle VM per una vista complessiva del cluster.
 
-### 8) Logout e sessioni
+### 8) Gestione utenti (admin)
+
+Nella sezione Utenti, un admin puo:
+
+- vedere la lista utenti registrati
+- verificare ruolo e stato (attivo/bloccato)
+- creare nuovi utenti
+- bloccare/sbloccare account
+- eliminare utenti
+
+Gli utenti non admin possono solo vedere il proprio profilo.
+
+### 9) Logout e sessioni
 
 Usa il logout quando hai finito per chiudere la sessione.
 

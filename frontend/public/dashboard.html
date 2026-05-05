@@ -39,6 +39,7 @@
       <div class="nav-section">
         <div class="nav-section-title" data-i18n="nav_advanced">Advanced</div>
         <div class="nav-item" data-section="cluster"><span class="icon">CL</span><span data-i18n="nav_cluster">Cluster & Migration</span></div>
+        <div class="nav-item" data-section="users" id="navUsers"><span class="icon">US</span><span data-i18n="nav_users">Users</span></div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -190,6 +191,35 @@
           </div>
         </div>
       </div>
+
+      <!-- USERS MANAGEMENT -->
+      <div id="section-users" class="section">
+        <div class="table-container">
+          <div class="table-toolbar">
+            <h3 data-i18n="users_title">User Management</h3>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-sm btn-primary" id="createUserBtn"><span data-i18n="users_create">Create User</span></button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th data-i18n="users_username">Username</th>
+                  <th data-i18n="users_email">Email</th>
+                  <th data-i18n="users_role">Role</th>
+                  <th data-i18n="users_status">Status</th>
+                  <th data-i18n="th_actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="6" class="loading-overlay"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -217,6 +247,7 @@
 <script src="js/monitoring.js?v=4.0"></script>
 <script src="js/backup.js?v=4.0"></script>
 <script src="js/cluster.js?v=4.0"></script>
+<script src="js/users.js?v=4.0"></script>
 <script src="js/app.js?v=4.0"></script>
 </body>
 </html>
