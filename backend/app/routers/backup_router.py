@@ -75,11 +75,12 @@ async def create_snapshot(
         raise HTTPException(status_code=503, detail="Proxmox not available")
     try:
         result = pve.create_snapshot(node, vmid, request.name, request.description or "", request.include_ram, vm_type)
+        task_id = result.get("task_id") if isinstance(result, dict) else result
         audit = AuditLog(user_id=current_user.id, action="snapshot_create", target_type="vm",
                          target_id=f"{node}/{vmid}", target_name=request.name, status="success")
         db.add(audit)
         await db.commit()
-        return BackupResponse(status="ok", task_id=result.get("task_id"),
+        return BackupResponse(status="ok", task_id=task_id,
                               message=f"Snapshot '{request.name}' created for VM {vmid}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

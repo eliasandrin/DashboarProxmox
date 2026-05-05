@@ -522,13 +522,14 @@ class ProxmoxClient:
             return {"task_id": f"UPID:demo:{vmid}:snapshot:{name}:", "status": "ok"}
         try:
             if vm_type == "qemu":
-                return self._proxmox.nodes(node).qemu(vmid).snapshot.post(
+                result = self._proxmox.nodes(node).qemu(vmid).snapshot.post(
                     snapname=name, description=description, vmstate=int(include_ram)
                 )
             else:
-                return self._proxmox.nodes(node).lxc(vmid).snapshot.post(
+                result = self._proxmox.nodes(node).lxc(vmid).snapshot.post(
                     snapname=name, description=description
                 )
+            return {"task_id": result, "status": "ok"}
         except Exception as e:
             logger.error(f"Error creating snapshot for {vmid}: {e}")
             raise
