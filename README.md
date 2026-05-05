@@ -157,6 +157,8 @@ Dalla lista VM puoi:
 
 Le azioni richiedono conferma. Usa questa sezione per simulare i flussi operativi durante la demo.
 
+Nota: la creazione di VM/CT usa i default di Proxmox per network e storage (bridge e storage predefiniti sul nodo).
+
 ### 5) Monitoring
 
 Apri la sezione Monitoring per i grafici RRD:
