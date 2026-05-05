@@ -60,7 +60,7 @@ function populateMigrationSelects() {
   allVms
     .filter((v) => v.type === 'qemu' && v.status === 'running')
     .forEach((v) => {
-      vmOpts += `<option value="${v.node}/${v.vmid}">${v.name} (${v.vmid}) - ${v.node}</option>`;
+      vmOpts += `<option value="${v.node}/${v.vmid}">${v.name} (${v.vmid})</option>`;
     });
   vmSel.innerHTML = vmOpts;
 
