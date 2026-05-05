@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     PROXMOX_USER: str = "apiuser@pve!portal-token"
     PROXMOX_TOKEN_VALUE: str = ""
     PROXMOX_VERIFY_SSL: bool = False
+    BACKUP_STORAGE_DEFAULT: str = "local"
 
     # ── AWS ────────────────────────────────────────────
     AWS_REGION: str = "eu-south-1"

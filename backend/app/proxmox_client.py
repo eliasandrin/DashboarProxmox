@@ -535,7 +535,7 @@ class ProxmoxClient:
 
     # ── Backup (PBS) ──────────────────────────────────
 
-    def create_backup(self, node: str, vmid: int, storage: str = "pbs",
+    def create_backup(self, node: str, vmid: int, storage: str = settings.BACKUP_STORAGE_DEFAULT,
                       mode: str = "snapshot", compress: str = "zstd",
                       notes: Optional[str] = None) -> Dict:
         """
@@ -585,7 +585,7 @@ class ProxmoxClient:
                 }
             return {"status": "error", "message": f"Backup failed: {error_msg}", "task_id": None}
 
-    def get_backups(self, storage: str = "pbs", vmid: Optional[int] = None) -> List[Dict]:
+    def get_backups(self, storage: str = settings.BACKUP_STORAGE_DEFAULT, vmid: Optional[int] = None) -> List[Dict]:
         if self._demo_mode:
             return DemoDataProvider.get_backups(vmid)
         try:
@@ -596,6 +596,81 @@ class ProxmoxClient:
         except Exception as e:
             logger.warning(f"⚠️ Could not retrieve backups from {storage}: {e}")
             return []
+
+    def get_task_status(self, node: str, upid: str) -> Dict:
+        """Get task status for a given UPID."""
+        if self._demo_mode:
+            return {
+                "status": "stopped",
+                "exitstatus": "OK",
+                "upid": upid,
+                "node": node,
+            }
+        try:
+            return self._proxmox.nodes(node).tasks(upid).status.get()
+        except Exception as e:
+            logger.error(f"Error fetching task status {upid}: {e}")
+            raise
+
+    def get_task_log(self, node: str, upid: str, start: int = 0, limit: int = 200) -> List[Dict]:
+        """Get task log lines for a given UPID."""
+        if self._demo_mode:
+            return [{"n": 1, "t": "INFO: 50%"}]
+        try:
+            return self._proxmox.nodes(node).tasks(upid).log.get(start=start, limit=limit)
+        except Exception as e:
+            logger.error(f"Error fetching task log {upid}: {e}")
+            raise
+
+    def get_storages(self, backup_only: bool = False) -> List[Dict]:
+        """List storages across nodes with basic metadata."""
+        if self._demo_mode:
+            storages = [
+                {"storage": "proxmox-backup-server", "node": "pve-node01", "type": "pbs", "status": "available", "content": "backup"},
+                {"storage": "Test-Pool", "node": "pve-node01", "type": "zfspool", "status": "available", "content": "images,rootdir"},
+                {"storage": "local", "node": "pve-node01", "type": "dir", "status": "available", "content": "iso,backup"},
+                {"storage": "local-lvm", "node": "pve-node01", "type": "lvmthin", "status": "available", "content": "images,rootdir"},
+            ]
+            return self._filter_backup_storages(storages) if backup_only else storages
+
+        storages: List[Dict] = []
+        seen = set()
+        for n in self.get_nodes():
+            node = n.get("node")
+            if not node:
+                continue
+            try:
+                items = self._proxmox.nodes(node).storage.get()
+                for s in items:
+                    name = s.get("storage") or s.get("name")
+                    if not name:
+                        continue
+                    key = f"{node}:{name}"
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    storages.append({
+                        "storage": name,
+                        "node": node,
+                        "type": s.get("type"),
+                        "status": s.get("status"),
+                        "content": s.get("content"),
+                    })
+            except Exception as e:
+                logger.warning(f"⚠️ Could not retrieve storages for {node}: {e}")
+        return self._filter_backup_storages(storages) if backup_only else storages
+
+    @staticmethod
+    def _filter_backup_storages(storages: List[Dict]) -> List[Dict]:
+        filtered: List[Dict] = []
+        for s in storages:
+            content = (s.get("content") or "").lower()
+            status = (s.get("status") or "").lower()
+            has_backup = "backup" in [c.strip() for c in content.split(",") if c.strip()]
+            status_ok = status in ("", "available", "active")
+            if has_backup and status_ok:
+                filtered.append(s)
+        return filtered
 
     # ── Cluster Operations (Bonus) ────────────────────
 

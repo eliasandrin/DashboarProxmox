@@ -1,5 +1,42 @@
 /* INFORMIX Spa — Backup & Snapshot Module */
 
+let backupPollTimer = null;
+
+function getSelectedBackupStorage() {
+  const sel = document.getElementById('backupStorageSelect');
+  return sel?.value || '';
+}
+
+function setBackupStatus(message, type = 'info') {
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = message;
+  el.style.display = 'flex';
+}
+
+function clearBackupStatus() {
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
+function parseBackupProgress(logs) {
+  if (!Array.isArray(logs)) return null;
+  let lastPercent = null;
+  logs.forEach((line) => {
+    const text = line?.t || '';
+    const matches = text.match(/(\d{1,3})%/g);
+    if (!matches) return;
+    matches.forEach((m) => {
+      const val = parseInt(m.replace('%', ''), 10);
+      if (!Number.isNaN(val)) lastPercent = Math.min(100, Math.max(0, val));
+    });
+  });
+  return lastPercent;
+}
+
 function populateBackupVmSelect() {
   const sel = document.getElementById('backupVmSelect');
   if (!sel) return;
@@ -42,12 +79,19 @@ async function loadSnapshots(node, vmid, type) {
   }
 }
 
-async function loadBackupHistory(vmid) {
+async function loadBackupHistory(vmid, storage) {
   const container = document.getElementById('backupList');
   if (!container) return;
 
+  const targetStorage = storage || getSelectedBackupStorage();
+  if (!targetStorage) {
+    container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted);">${t('select_backup_storage')}</div>`;
+    return;
+  }
+
   try {
-    const url = vmid ? `/storage/pbs/content?vmid=${vmid}` : '/storage/pbs/content';
+    const encodedStorage = encodeURIComponent(targetStorage);
+    const url = vmid ? `/storage/${encodedStorage}/content?vmid=${vmid}` : `/storage/${encodedStorage}/content`;
     const data = await ApiClient.get(url);
     if (data.warning) document.getElementById('pbsWarning').style.display = 'flex';
 
@@ -75,6 +119,104 @@ async function loadBackupHistory(vmid) {
   }
 }
 
+async function loadBackupStorages() {
+  const sel = document.getElementById('backupStorageSelect');
+  if (!sel) return;
+
+  sel.innerHTML = '<option value="">-- Loading --</option>';
+
+  try {
+    const data = await ApiClient.get('/storages');
+    const storages = data.storages || [];
+
+    const unique = new Map();
+    storages.forEach((s) => {
+      const name = s.storage || s.name;
+      if (!name) return;
+      if (!unique.has(name)) unique.set(name, s);
+    });
+
+    const list = Array.from(unique.values());
+    if (list.length === 0) {
+      sel.innerHTML = '<option value="">-- No backup storage --</option>';
+      return;
+    }
+
+    list.sort((a, b) => (a.storage || a.name).localeCompare(b.storage || b.name));
+    const previous = sel.value;
+    sel.innerHTML = list
+      .map((s) => {
+        const name = s.storage || s.name;
+        const suffix = s.type ? ` · ${s.type}` : '';
+        return `<option value="${name}">${name}${suffix}</option>`;
+      })
+      .join('');
+
+    if (previous && list.some((s) => (s.storage || s.name) === previous)) {
+      sel.value = previous;
+    } else if (data.default_storage) {
+      sel.value = data.default_storage;
+    }
+
+    const vmVal = document.getElementById('backupVmSelect')?.value;
+    const vmid = vmVal ? parseInt(vmVal.split('/')[1], 10) : null;
+    loadBackupHistory(vmid, sel.value);
+  } catch (e) {
+    sel.innerHTML = `<option value="">${e.message}</option>`;
+  }
+}
+
+async function pollBackupTask(node, upid, vmid) {
+  if (!upid) return;
+  if (backupPollTimer) clearInterval(backupPollTimer);
+
+  let attempts = 0;
+  setBackupStatus(`Backup in corso (task ${upid}).`, 'info');
+
+  backupPollTimer = setInterval(async () => {
+    attempts += 1;
+    try {
+      const status = await ApiClient.get(`/nodes/${node}/tasks/${encodeURIComponent(upid)}/status`);
+      const state = status.status || 'unknown';
+      const exitStatus = status.exitstatus || '';
+
+      let progressText = '';
+      if (state !== 'stopped') {
+        try {
+          const logResp = await ApiClient.get(`/nodes/${node}/tasks/${encodeURIComponent(upid)}/log?start=0&limit=200`);
+          const percent = parseBackupProgress(logResp.logs || []);
+          if (percent !== null) progressText = `, ${percent}%`;
+        } catch {}
+      }
+
+      if (state === 'stopped') {
+        clearInterval(backupPollTimer);
+        backupPollTimer = null;
+        if (exitStatus && exitStatus.toUpperCase() === 'OK') {
+          setBackupStatus('Backup completato con successo.', 'success');
+        } else {
+          setBackupStatus(`Backup terminato con stato: ${exitStatus || 'error'}`, 'error');
+        }
+        setTimeout(() => clearBackupStatus(), 5000);
+        loadBackupHistory(parseInt(vmid, 10));
+        return;
+      }
+
+      setBackupStatus(`Backup in corso (stato: ${state}${progressText}).`, 'info');
+    } catch (e) {
+      clearInterval(backupPollTimer);
+      backupPollTimer = null;
+      setBackupStatus(`Impossibile leggere lo stato backup: ${e.message}`, 'error');
+    }
+
+    if (attempts >= 60) {
+      clearInterval(backupPollTimer);
+      backupPollTimer = null;
+      setBackupStatus('Backup avviato. Stato non disponibile (timeout).', 'warning');
+    }
+  }, 5000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('backupVmSelect');
   if (sel) {
@@ -86,6 +228,12 @@ document.addEventListener('DOMContentLoaded', () => {
       loadBackupHistory(parseInt(vmid, 10));
     });
   }
+
+  document.getElementById('backupStorageSelect')?.addEventListener('change', () => {
+    const vmVal = document.getElementById('backupVmSelect')?.value;
+    const vmid = vmVal ? parseInt(vmVal.split('/')[1], 10) : null;
+    loadBackupHistory(vmid);
+  });
 
   document.getElementById('createSnapshotBtn')?.addEventListener('click', () => {
     const val = document.getElementById('backupVmSelect')?.value;
@@ -122,21 +270,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const [node, vmid] = val.split('/');
-    showModal(t('start_backup'), `Start backup of VM ${vmid} to PBS?`, async () => {
+    const storage = getSelectedBackupStorage();
+    if (!storage) {
+      showToast(t('select_backup_storage'), 'error');
+      return;
+    }
+
+    showModal(t('start_backup'), `Start backup of VM ${vmid} to ${storage}?`, async () => {
       try {
         const res = await ApiClient.post(`/nodes/${node}/vms/${vmid}/backup`, {
-          storage: 'pbs',
+          storage,
           mode: 'snapshot',
           compress: 'zstd',
         });
 
         if (res.status === 'ok') {
           showToast(t('backup_started'), 'success');
+          if (res.task_id) {
+            pollBackupTask(node, res.task_id, vmid);
+          }
         } else {
           showToast(res.message, 'error');
           document.getElementById('pbsWarning').style.display = 'flex';
         }
-        loadBackupHistory(parseInt(vmid, 10));
+        if (!res.task_id) loadBackupHistory(parseInt(vmid, 10), storage);
       } catch (e) {
         showToast(`${t('backup_failed')}: ${e.message}`, 'error');
       }

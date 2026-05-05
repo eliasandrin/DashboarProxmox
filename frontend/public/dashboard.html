@@ -152,17 +152,19 @@
 
       <!-- BACKUP & SNAPSHOT -->
       <div id="section-backup" class="section">
-        <div id="pbsWarning" class="alert alert-warning" style="display:none;"><span data-i18n="pbs_warning">Proxmox Backup Server is temporarily unreachable. Some features may be limited.</span></div>
+        <div id="pbsWarning" class="alert alert-warning" style="display:none;"><span data-i18n="pbs_warning">Backup storage is temporarily unreachable. Some features may be limited.</span></div>
+        <div id="backupStatus" class="alert" style="display:none;"></div>
         <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
           <label style="font-size:.85rem; color:var(--text-secondary);" data-i18n="select_vm_backup">Select VM:</label>
-          <select id="backupVmSelect" style="padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
-          </select>
+          <select id="backupVmSelect" style="padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;"></select>
+          <label style="font-size:.85rem; color:var(--text-secondary);" data-i18n="backup_storage">Storage:</label>
+          <select id="backupStorageSelect" style="padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;"></select>
           <button class="btn btn-sm btn-success" id="createSnapshotBtn"><span data-i18n="create_snapshot">Create Snapshot</span></button>
-          <button class="btn btn-sm btn-primary" id="createBackupBtn"><span data-i18n="start_backup">Start Backup (PBS)</span></button>
+          <button class="btn btn-sm btn-primary" id="createBackupBtn"><span data-i18n="start_backup">Start Backup</span></button>
         </div>
         <div class="grid grid-2">
           <div class="card"><div class="card-header"><h3 data-i18n="snapshots">Snapshots</h3></div><div id="snapshotList" class="snapshot-list"></div></div>
-          <div class="card"><div class="card-header"><h3 data-i18n="backup_history">Backup History (PBS)</h3></div><div id="backupList"></div></div>
+          <div class="card"><div class="card-header"><h3 data-i18n="backup_history">Backup History</h3></div><div id="backupList"></div></div>
         </div>
       </div>
 

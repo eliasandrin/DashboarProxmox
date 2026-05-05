@@ -6,6 +6,7 @@ Request/Response models for API validation and serialization.
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Any
 from datetime import datetime
+from app.config import settings
 
 
 # ── Authentication ────────────────────────────────────
@@ -198,7 +199,7 @@ class CreateSnapshotRequest(BaseModel):
 
 
 class BackupRequest(BaseModel):
-    storage: str = "pbs"
+    storage: str = Field(default_factory=lambda: settings.BACKUP_STORAGE_DEFAULT)
     mode: str = "snapshot"  # snapshot, suspend, stop
     compress: str = "zstd"
     notes: Optional[str] = None

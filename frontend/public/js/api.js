@@ -90,7 +90,11 @@ function formatUptime(seconds) {
 
 function formatTimestamp(ts) {
   if (!ts) return '—';
-  return new Date(ts * 1000).toLocaleString();
+  const value = Number(ts);
+  if (Number.isNaN(value)) return '—';
+  // Proxmox usually returns seconds; fall back to ms if needed.
+  const ms = value > 1e12 ? value : value * 1000;
+  return new Date(ms).toLocaleString(undefined, { timeZoneName: 'short' });
 }
 
 function showToast(message, type = 'success') {

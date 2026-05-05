@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models import User, AuditLog
 from app.main import get_proxmox
@@ -19,6 +20,26 @@ from app.schemas import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+@router.get("/storages")
+async def list_storages(current_user: User = Depends(get_current_user)):
+    """List available storages for backups."""
+    pve = get_proxmox()
+    if pve is None:
+        raise HTTPException(status_code=503, detail="Proxmox not available")
+    try:
+        storages = pve.get_storages(backup_only=True)
+        default_storage = None
+        if storages:
+            names = [s.get("storage") or s.get("name") for s in storages]
+            if names and settings.BACKUP_STORAGE_DEFAULT in names:
+                default_storage = settings.BACKUP_STORAGE_DEFAULT
+            else:
+                default_storage = names[0]
+        return {"storages": storages, "default_storage": default_storage}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/nodes/{node}/vms/{vmid}/snapshots", response_model=SnapshotListResponse)
@@ -72,7 +93,7 @@ async def create_backup(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Start backup to PBS. RESILIENCE: returns warning if PBS unreachable, never crashes.
+    Start backup to storage. RESILIENCE: returns warning if storage is unreachable.
     """
     pve = get_proxmox()
     if pve is None:
@@ -88,7 +109,7 @@ async def create_backup(
 
 
 @router.get("/storage/{storage}/content")
-async def list_backups(storage: str = "pbs", vmid: int = None,
+async def list_backups(storage: str = settings.BACKUP_STORAGE_DEFAULT, vmid: int = None,
                        current_user: User = Depends(get_current_user)):
     """List backups on storage (PBS)."""
     pve = get_proxmox()
@@ -101,3 +122,37 @@ async def list_backups(storage: str = "pbs", vmid: int = None,
         return {"backups": backups, "total": len(backups), "storage": storage}
     except Exception as e:
         return {"backups": [], "total": 0, "storage": storage, "warning": "Storage temporarily unavailable"}
+
+
+@router.get("/nodes/{node}/tasks/{upid}/status")
+async def get_task_status(
+    node: str,
+    upid: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Get Proxmox task status by UPID."""
+    pve = get_proxmox()
+    if pve is None:
+        raise HTTPException(status_code=503, detail="Proxmox not available")
+    try:
+        return pve.get_task_status(node, upid)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/nodes/{node}/tasks/{upid}/log")
+async def get_task_log(
+    node: str,
+    upid: str,
+    start: int = 0,
+    limit: int = 200,
+    current_user: User = Depends(get_current_user),
+):
+    """Get Proxmox task log lines by UPID."""
+    pve = get_proxmox()
+    if pve is None:
+        raise HTTPException(status_code=503, detail="Proxmox not available")
+    try:
+        return {"logs": pve.get_task_log(node, upid, start=start, limit=limit)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

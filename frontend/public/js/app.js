@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Load section data
       if (section === 'vms') loadVmTable();
       if (section === 'monitoring') { initCharts(); populateMonitorTargets(); }
-      if (section === 'backup') { populateBackupVmSelect(); loadBackupHistory(); }
+      if (section === 'backup') { populateBackupVmSelect(); loadBackupStorages(); }
       if (section === 'cluster') loadCluster();
       if (section === 'users') loadUsers();
     });
@@ -91,7 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (active === 'dashboard') loadDashboard();
     else if (active === 'vms') { allVms = []; loadVmTable(); }
     else if (active === 'monitoring') loadMonitoringData();
-    else if (active === 'backup') { const val = document.getElementById('backupVmSelect')?.value; if (val) { const [n, v, tp] = val.split('/'); loadSnapshots(n, v, tp); loadBackupHistory(parseInt(v)); } }
+    else if (active === 'backup') {
+      const val = document.getElementById('backupVmSelect')?.value;
+      if (val) {
+        const [n, v, tp] = val.split('/');
+        loadSnapshots(n, v, tp);
+        loadBackupHistory(parseInt(v, 10));
+      } else {
+        loadBackupHistory(null);
+      }
+    }
     else if (active === 'cluster') loadCluster();
     else if (active === 'users') loadUsers();
     showToast('Data refreshed', 'success');
