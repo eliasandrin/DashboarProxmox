@@ -70,18 +70,6 @@ async function openCreateVmModal() {
           <label>${t('disk_gb')}</label>
           <input id="createVmDisk" type="number" min="1" value="20" style="width:100%;">
         </div>
-        <div class="form-group">
-          <label>${t('network_bridge')}</label>
-          <input id="createVmBridge" type="text" value="vmbr0" style="width:100%;">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>${t('disk_storage')}</label>
-        <input id="createVmDiskStorage" type="text" value="local-lvm" style="width:100%;">
-      </div>
-      <div class="form-group">
-        <label>${t('iso_storage')}</label>
-        <input id="createVmIsoStorage" type="text" value="local" style="width:100%;">
       </div>
       <div class="form-group">
         <label>${t('iso_file')}</label>
@@ -99,8 +87,6 @@ async function openCreateVmModal() {
       const cores = parseInt(document.getElementById('createVmCores')?.value || '1', 10);
       const memoryMb = parseInt(document.getElementById('createVmRam')?.value || '1024', 10);
       const diskGb = parseInt(document.getElementById('createVmDisk')?.value || '8', 10);
-      const bridge = document.getElementById('createVmBridge')?.value?.trim() || 'vmbr0';
-      const diskStorage = document.getElementById('createVmDiskStorage')?.value?.trim() || 'local-lvm';
 
       if (!node || !vmid || !name) {
         showToast('Compila node, VMID e nome', 'error');
@@ -108,7 +94,7 @@ async function openCreateVmModal() {
       }
 
       let isoFileName = null;
-      const isoStorage = document.getElementById('createVmIsoStorage')?.value?.trim() || 'local';
+      const isoStorage = 'local';
       const isoInput = document.getElementById('createVmIsoFile');
       if (isoInput && isoInput.files && isoInput.files.length > 0) {
         const file = isoInput.files[0];
@@ -132,8 +118,6 @@ async function openCreateVmModal() {
         cores: cores,
         memory_mb: memoryMb,
         disk_gb: diskGb,
-        network_bridge: bridge,
-        disk_storage: diskStorage,
       };
 
       if (isoFileName) {
@@ -202,14 +186,6 @@ async function openCreateCtModal() {
           <label>${t('disk_gb')}</label>
           <input id="createCtDisk" type="number" min="1" value="20" style="width:100%;">
         </div>
-        <div class="form-group">
-          <label>${t('network_bridge')}</label>
-          <input id="createCtBridge" type="text" value="vmbr0" style="width:100%;">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>${t('disk_storage')}</label>
-        <input id="createCtDiskStorage" type="text" value="local-lvm" style="width:100%;">
       </div>
       <div class="form-group">
         <label>${t('ct_template')}</label>
@@ -226,8 +202,6 @@ async function openCreateCtModal() {
       const cores = parseInt(document.getElementById('createCtCores')?.value || '1', 10);
       const memoryMb = parseInt(document.getElementById('createCtRam')?.value || '1024', 10);
       const diskGb = parseInt(document.getElementById('createCtDisk')?.value || '8', 10);
-      const bridge = document.getElementById('createCtBridge')?.value?.trim() || 'vmbr0';
-      const diskStorage = document.getElementById('createCtDiskStorage')?.value?.trim() || 'local-lvm';
       const template = document.getElementById('createCtTemplate')?.value?.trim();
 
       if (!node || !vmid || !name) {
@@ -248,8 +222,6 @@ async function openCreateCtModal() {
         cores: cores,
         memory_mb: memoryMb,
         disk_gb: diskGb,
-        network_bridge: bridge,
-        disk_storage: diskStorage,
         ct_template: template,
       };
 
