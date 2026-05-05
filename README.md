@@ -122,6 +122,8 @@ Imposta `LAN_DNS_IP` in `.env` con l'IP del PC che ospita Docker.
 2. Se e il primo avvio, usa la pagina di registrazione per creare il primo account.
 3. Vai alla pagina di login ed effettua l'accesso.
 
+Nota: non esiste un account admin preimpostato. Il primo utente registrato diventa admin.
+
 Suggerimento: se sei in modalita demo, la UI mostra dati di esempio ma tutte le funzioni restano navigabili.
 
 ### 2) Dashboard
