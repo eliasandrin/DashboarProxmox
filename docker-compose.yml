@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: informix_portal
       POSTGRES_USER: informix_admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-InformixDev2024!}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Vmware1!}
     ports:
       - "5432:5432"
     volumes:
@@ -36,7 +36,7 @@ services:
       DB_PORT: "5432"
       DB_NAME: informix_portal
       DB_USER: informix_admin
-      DB_PASSWORD: ${DB_PASSWORD:-InformixDev2024!}
+      DB_PASSWORD: ${DB_PASSWORD:-Vmware1!}
       # JWT
       JWT_SECRET_KEY: ${JWT_SECRET:-dev-secret-key-change-in-production}
       JWT_ALGORITHM: HS256
@@ -50,7 +50,8 @@ services:
       # AWS (optional in dev)
       AWS_REGION: ${AWS_REGION:-eu-south-1}
       AWS_SECRET_NAME: ${AWS_SECRET_NAME:-informix/portal/config}
-      USE_AWS_SECRETS: "false"
+      AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID:-}
+      USE_AWS_SECRETS: ${USE_AWS_SECRETS:-false}
     ports:
       - "8000:8000"
     depends_on:
